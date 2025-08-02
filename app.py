@@ -1,8 +1,11 @@
-import streamlit as st
+import os
 import uuid
+import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain.chat_models import ChatOpenAI
 from sql_agent import create_sql_agent
+from dotenv import load_dotenv
+
 
 st.set_page_config(page_title="Chat with your Database", page_icon=":speech_balloon:")
 
@@ -11,11 +14,20 @@ st.title("Chat with your Database")
 # Hardcoded values for simplicity
 DB_URI = "sqlite:///Chinook.db"
 STATE_PATH = "state.db"
-MODEL = "gpt-3.5-turbo-0125"
 TOP_K = 5
 
-# Initialize the chat model
-llm = ChatOpenAI(model=MODEL)
+# Load environment variables from .env file
+load_dotenv()
+
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+MODEL = "gpt-4o"  # best available as of Aug 2025
+
+if not OPENAI_KEY:
+    st.error("Missing OPENAI_API_KEY in environment.")
+    st.stop()
+
+llm = ChatOpenAI(model=MODEL, openai_api_key=OPENAI_KEY)
+
 
 # Create the SQL agent graph
 # This will also save the graph visualization
