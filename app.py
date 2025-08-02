@@ -1,10 +1,13 @@
 import streamlit as st
 import uuid
+from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain.chat_models import ChatOpenAI
 from sql_agent import create_sql_agent
 
 st.set_page_config(page_title="Chat with your Database", page_icon=":speech_balloon:")
+
+load_dotenv()
 
 st.title("Chat with your Database")
 
