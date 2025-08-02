@@ -26,6 +26,9 @@ from langgraph.prebuilt import ToolNode
 # temporary in‑memory checkpoints you can import InMemorySaver from
 # langgraph.checkpoint.memory instead.
 from langgraph.checkpoint.sqlite import SqliteSaver  # type: ignore
+from langchain_core.runnables.graph import CurveStyle, MermaidDrawMethod, NodeStyles
+import io
+from contextlib import redirect_stdout
 
 
 def create_sql_agent(
@@ -174,4 +177,31 @@ def create_sql_agent(
     # the state in a local file so the agent can remember across runs.
     checkpointer = SqliteSaver(sqlite3.connect(state_path))
     graph = builder.compile(checkpointer=checkpointer)
+
+    # Save a visualization of the agent graph.
+    # Note: The original request was to save a PNG image of the graph.
+    # However, the required dependencies (py-mermaid, mermaid-cli) are not
+    # available in the current environment. As a fallback, I'm saving the
+    # graph in two formats:
+    # 1. An ASCII art representation in `graph.txt`.
+    # 2. A MermaidJS definition in `graph.mermaid`, which can be used to
+    #    generate a diagram using online editors or local tools.
+    with open("graph.txt", "w") as f:
+        f.write(graph.get_graph().draw_ascii())
+
+    with open("graph.png", "wb") as f:
+        try:
+            f.write(graph.get_graph().draw_mermaid_png())
+        except Exception as e:
+            # As a fallback, save the mermaid diagram definition
+            with open("graph.mermaid", "w") as f_mermaid:
+                f_mermaid.write(graph.get_graph().draw_mermaid())
+            # also write a text file explaining the situation
+            with open("graph.txt", "w") as f_text:
+                f_text.write("Could not generate graph.png. Please use graph.mermaid to generate the diagram.\n\n")
+                f_text.write(str(e))
+                f_text.write("\n\nAscii representation:\n\n")
+                f_text.write(graph.get_graph().draw_ascii())
+
+
     return graph, db
