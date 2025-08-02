@@ -1,0 +1,8 @@
+langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=0.0.6
+langchain>=0.1.8
+langchain-community>=0.0.28
+openai>=1.10.0
+sqlalchemy>=1.4
+requests>=2.31.0
+tqdm>=4.66.0
