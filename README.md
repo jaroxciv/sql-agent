@@ -1,107 +1,174 @@
-# SQL Agent with LangGraph
+# 🛰️ AI SQL Analytics Chatbot — Chinook Demo
 
-This repository demonstrates how to build a SQL agent using **LangGraph**, a
-framework for orchestrating large language models via graphs.  The agent
-translates natural‑language questions into SQL, executes the queries against
-a database and persists its conversation state between interactions using
-LangGraph’s checkpointing framework.  Because the agent stores its state after
-each step, you can ask follow‑up questions in the same thread and it will
-remember prior context.
+**Chat with your Postgres database and get actionable business insights powered by LLMs!**  
+This project demonstrates a modern, modular AI SQL assistant using the classic Chinook dataset, Postgres, Streamlit, and OpenAI/Mistral LLMs — engineered for clarity, extensibility, and real business value.
 
-## Features
+---
 
-- Implements a text‑to‑SQL agent using the LangGraph graph API.
-- Persists short‑term memory between interactions via a SQLite‑backed
-  checkpointer (`SqliteSaver`).
-- Interactive command‑line interface for asking questions over a SQL database.
-- Compatible with any chat model supporting tool calling (e.g. OpenAI GPT‑4).
-- Includes example configuration for the [`Chinook`](https://www.sqlitetutorial.net/sqlite-sample-database/) sample database.
+## 🚀 Features
 
-## Installation
+- **Conversational SQL Analytics**  
+  Ask questions in natural language and get both the SQL query and a manager-ready summary.
 
-This project requires **Python 3.10+**.
+- **Advanced Prompt Engineering**  
+  Customizable prompt templates with examples and detailed schema notes, reducing hallucination.
 
-1. Clone the repository and change into its directory:
+- **Memory & Context Handling**  
+  Postgres-backed LangGraph checkpointer for LLM session memory (no stateless chat!).
 
-   ```bash
-   git clone https://github.com/jaroxciv/sql-agent.git
-   cd sql-agent
-   ```
+- **Schema Extraction**  
+  Automated extraction of tables, columns, and sample values using Pydantic models.
 
-2. Install the dependencies:
+- **Production-Ready Architecture**  
+  - Modular agent and prompt manager classes  
+  - Dockerized Postgres with PgAdmin for easy setup  
+  - Extensible LLM client system (supports OpenAI, Mistral, etc.)  
+  - Secure config via `.env`
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+- **Plug-and-play for your own data**  
+  Swap in your schema or connect a new database — agent will adapt!
 
-3. Set your chat model API key as an environment variable.  The example code
-   uses OpenAI models, so you’ll need an `OPENAI_API_KEY`:
+---
 
-   ```bash
-   export OPENAI_API_KEY=sk-...
-   ```
+## 🖼️ Demo
 
-4. Download a SQLite database.  To follow along with the example you can
-   download the **Chinook** sample database:
+**Example 1: Who was the top sales agent by total invoice sales in 2023?**
 
-   ```bash
-   python -c "import requests; url='https://storage.googleapis.com/benchmarks-artifacts/chinook/Chinook.db'; open('Chinook.db','wb').write(requests.get(url).content)"
-   ```
+<details>
+  <summary>Show Answer</summary>
 
-## Usage
+  **Summarized Analysis:**
+  - The top sales agent by total invoice sales in 2023 is Jane Peacock with a total sales amount of 184.34.
+  - The second-highest is Steve Johnson (159.47).
+  - The third is Margaret Park (125.77).
 
-Run the interactive CLI using the database you downloaded:
+  **Insights & Implications:**
+  - Jane Peacock's performance significantly outpaces her peers, suggesting effective sales strategies or a strong customer base.
+  - The gap highlights where targeted training could help.
+</details>
+
+**Example 2: Which playlist contains the highest number of tracks, and how many tracks does it have?**
+
+<details>
+  <summary>Show Answer</summary>
+
+  **Summarized Analysis:**
+  - "Music" playlist: 3290 tracks (the largest by far)
+  - "90’s Music": 1477 tracks
+  - "TV Shows": 213 tracks
+  - Several others with 1–75 tracks
+
+  **Insights & Implications:**
+  - The "Music" playlist dominates and could be leveraged for promotions or user engagement.
+</details>
+
+**Example 3: List all customers from Brazil, including their full names and total amount spent.**
+
+<details>
+  <summary>Show Answer</summary>
+
+  **Summarized Analysis:**
+  - 5 customers from Brazil
+  - Most have spent 37.62; one spent 39.62
+
+  **Insights & Implications:**
+  - Consistent spending pattern, opportunity for targeted upselling.
+</details>
+
+---
+
+## 🛠️ Quickstart
+
+### 1. Clone & Install
 
 ```bash
-python app.py --db-uri sqlite:///Chinook.db --state-path state.db
+git clone https://github.com/jaroxciv/sql-agent.git
+cd sql-agent
+
+# Initialize uv project and virtual environment
+uv init
+uv venv
+
+# Activate the virtual environment
+# On Unix/Mac:
+source .venv/bin/activate
+# On Windows (Command Prompt):
+.venv\Scripts\activate
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+
+# Sync dependencies
+uv sync
 ```
 
-On the first run the program creates a small `state.db` file to persist
-the agent’s memory.  Use the same `--state-path` and `--thread-id` for
-subsequent runs to continue a conversation.
+### 2. Run the Dockerized Database
 
-Once started you can type natural language questions about the data.  For
-example:
 
-```
-Which genre on average has the longest tracks?
+```bash
+cd docker
+docker compose up -d --build
 ```
 
-The agent will translate your question into SQL, execute the query and
-return the result.  Thanks to the checkpointer, you can ask follow‑up
-questions without losing context:
+### 3. Configure `.env`
 
-```
-What about the shortest tracks?
-```
-
-## Architecture
-
-The agent is implemented in `sql_agent.py` using the LangGraph graph API.  It
-defines several nodes:
-
-- **list_tables** – calls the `sql_db_list_tables` tool to obtain the available
-  tables.
-- **call_get_schema** – instructs the chat model to call the schema tool for
-  relevant tables.
-- **get_schema** – runs the `sql_db_schema` tool to fetch table schemas.
-- **generate_query** – asks the chat model to propose a SQL query using the
-  `sql_db_query` tool.
-- **check_query** – double‑checks and rewrites the SQL if necessary using the
-  `sql_db_query_checker` tool.
-- **run_query** – executes the final SQL query.
-
-These nodes are connected with conditional edges so that invalid queries are
-corrected.  The graph is compiled with a checkpointer:
-
-```python
-checkpointer = SqliteSaver(sqlite3.connect(state_path))
-agent = builder.compile(checkpointer=checkpointer)
+```bash
+DB_TYPE=postgresql
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=chinook
+DB_PASSWORD=chinook
+DB_NAME=chinook
+LLM_API_KEY=sk-...          # Your OpenAI or Mistral API key
+LLM_MODEL=gpt-4o            # Or your preferred model
+MEMORY_SCHEMA=public
+MAX_ROWS=30
 ```
 
-When you invoke the agent you must supply a `thread_id` in the configuration.
-The agent stores its state after each super‑step.  On subsequent calls with
-the same `thread_id` it resumes from the previous state, providing
-short‑term memory for your application.
+### 4. Launch the App
 
-See `sql_agent.py` and `app.py` for implementation details.
+```bash
+streamlit run app.py
+```
+
+Open [localhost:8501](http://localhost:8501/) in your browser.
+
+### ⚡ Architecture
+
+```text
+docker/
+  ├─ docker-compose.yaml       # Spins up Postgres + PgAdmin
+  ├─ init.sql                  # Chinook database schema/data
+llm_clients/                   # Swappable LLM client classes (OpenAI, Mistral, etc.)
+agents.py                      # Modular SQL Agent logic
+app.py                         # Streamlit UI
+data_models.py                 # Pydantic schema models for safe/clear DB introspection
+db_knowledge.py                # Chinook table relationships & example queries
+default_prompts.json           # Prompt templates with schema, notes, examples
+llm_memory.py                  # Postgres-backed session memory
+prompts.py                     # Prompt manager to inject into Langgraph nodes
+requirements.txt
+utils.py                       # Data dictionary extraction, prompt loading, etc.
+```
+
+### 🧠 Extending or Adapting
+
+- Change to your own database:
+
+Update init.sql, .env, and re-extract the schema (see extract_data_dictionary).
+
+- Switch LLM:
+
+Add a client in llm_clients/ and set in .env.
+
+- Add prompt templates or demo examples:
+
+Update default_prompts.json and db_notes.py.
+
+- Production deploy:
+
+Add HTTPS, secrets management, and cloud hosting as needed.
+
+### 📄 License & Attribution
+
+- Chinook sample db by [lerocha](https://github.com/lerocha/chinook-database)
+- Made with ❤️ by Javi Alfaro
