@@ -83,6 +83,9 @@ if "messages" not in st.session_state:
 # --- Display chat history ---
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
+    if msg["role"] == "assistant" and msg.get("sql_query"):
+        with st.expander("Show generated SQL query"):
+            st.code(msg["sql_query"], language="sql")
 
 # --- Main chat loop ---
 if prompt := st.chat_input():
@@ -97,5 +100,15 @@ if prompt := st.chat_input():
     )
 
     answer = result.get("answer", "Sorry, I couldn't process that.")
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    sql_query = result.get("sql_query", "")
+    # Append both answer and sql_query to the message
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": answer,
+        "sql_query": sql_query
+    })
     st.chat_message("assistant").write(answer)
+    if sql_query:
+        with st.expander("Show generated SQL query"):
+            st.code(sql_query, language="sql")
+
